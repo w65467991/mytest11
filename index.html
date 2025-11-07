@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>客户成功交付看板</title>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'heinz-red': '#E31837',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes pulse-red {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .pulse-alert {
+            animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .value-stream-lane {
+            min-height: 120px;
+            border-left: 3px solid #E31837;
+            background: linear-gradient(to right, rgba(227, 24, 55, 0.05), transparent);
+        }
+        .customer-card {
+            transition: all 0.3s ease;
+            border-left: 4px solid;
+        }
+        .customer-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .bottleneck-heat {
+            background: linear-gradient(90deg, #fee2e2 0%, #fca5a5 50%, #ef4444 100%);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 24px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+        .heatmap-cell {
+            border-radius: 4px;
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            position: relative;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .heatmap-cell:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+        }
+        .heatmap-tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 1000;
+            white-space: nowrap;
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="container mx-auto px-4 py-6">
+        <!-- 头部：安灯系统 + 关键指标 -->
+        <header class="mb-6">
+            <div class="bg-white rounded-lg p-6 shadow-sm">
+                <div class="flex justify-between items-start mb-4">
+                    <div>
+                        <h1 class="text-3xl font-bold text-black mb-2">客户成功交付看板</h1>
+                        <p class="text-gray-600">交付流程 并行节点 人员监控</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500 mb-1">最后更新: <span id="lastUpdate">今天 15:20</span></div>
+                        <div class="flex gap-3 items-center">
+                            <div class="flex items-center gap-2 px-3 py-1 bg-red-50 rounded-full">
+                                <span class="w-2 h-2 bg-red-500 rounded-full pulse-alert"></span>
+                                <span class="text-sm font-semibold text-red-600">7个阻塞</span>
+                            </div>
+                            <div class="flex items-center gap-2 px-3 py-1 bg-yellow-50 rounded-full">
+                                <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                                <span class="text-sm font-semibold text-yellow-600">3个风险</span>
+                            </div>
+                            <div class="flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full">
+                                <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                <span class="text-sm font-semibold text-green-600">15个正常</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 关键指标仪表盘 -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-heinz-red">25</div>
+                        <div class="text-xs text-gray-600 mt-1">进行中交付</div>
+                        <div class="text-xs text-gray-400">智慧门店:8 分账:9 订货:8</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">82%</div>
+                        <div class="text-xs text-gray-600 mt-1">按时交付率</div>
+                        <div class="text-xs text-gray-400">本周20/24客户</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">4.2天</div>
+                        <div class="text-xs text-gray-600 mt-1">平均周期时间</div>
+                        <div class="text-xs text-gray-400">目标: 3.5天</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600">3.1</div>
+                        <div class="text-xs text-gray-600 mt-1">人均交付客户数</div>
+                        <div class="text-xs text-gray-400">最高: 5个</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 预测性分析模块 (Palantir风格) -->
+            <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg p-4 mt-4 border border-purple-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center">
+                            <span class="text-white text-lg">🔮</span>
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-black">超时交付预警</div>
+                            <div class="text-xs text-gray-600">基于历史数据与当前进度预测</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-4">
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-orange-600">3</div>
+                            <div class="text-xs text-gray-600">未来2天可能阻塞</div>
+                            <div class="text-xs text-orange-500">置信度: 高</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-yellow-600">2</div>
+                            <div class="text-xs text-gray-600">未来3-5天风险</div>
+                            <div class="text-xs text-yellow-500">置信度: 中</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-t border-purple-200">
+                    <div class="text-xs text-gray-600">
+                        <span class="font-medium">预测依据:</span> A品牌(进度20% < 预期30%, 交付者负载5个) | 
+                        A品牌(进度45% < 预期55%, 阻塞1.8天) | 
+                        C品牌(进度55%, 超期1天)
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- 筛选功能 -->
+        <div class="bg-white rounded-lg p-4 mb-4 shadow-sm">
+            <div class="flex items-center gap-4 flex-wrap">
+                <span class="text-sm font-medium text-black">筛选:</span>
+                <select id="filterDeliverer" class="text-xs border rounded px-2 py-1">
+                    <option value="all">全部交付者</option>
+                    <option value="林鸿">林鸿</option>
+                    <option value="何承翔">何承翔</option>
+                    <option value="陆晨">陆晨</option>
+                </select>
+                <select id="filterProduct" class="text-xs border rounded px-2 py-1">
+                    <option value="all">全部产品</option>
+                    <option value="智慧门店系统">智慧门店系统</option>
+                    <option value="分账系统">分账系统</option>
+                    <option value="订货系统">订货系统</option>
+                </select>
+                <select id="filterStatus" class="text-xs border rounded px-2 py-1">
+                    <option value="all">全部状态</option>
+                    <option value="阻塞">阻塞</option>
+                    <option value="风险">风险</option>
+                    <option value="正常">正常</option>
+                </select>
+                <button onclick="applyFilters()" class="text-xs bg-heinz-red text-white px-3 py-1 rounded hover:bg-red-700">应用筛选</button>
+                <button onclick="resetFilters()" class="text-xs bg-gray-200 text-gray-700 px-3 py-1 rounded hover:bg-gray-300">重置</button>
+            </div>
+        </div>
+
+        <!-- 价值流总览：横向时间轴 + 阶段泳道 -->
+        <div class="bg-white rounded-lg p-6 mb-6 shadow-sm">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-black">交付阶段泳道</h2>
+                <div class="flex gap-2 text-xs">
+                    <span class="px-2 py-1 bg-blue-100 text-blue-700 rounded">处理时间</span>
+                    <span class="px-2 py-1 bg-gray-100 text-gray-700 rounded">等待时间</span>
+                    <span class="px-2 py-1 bg-heinz-red/10 text-heinz-red rounded">阻塞点</span>
+                </div>
+            </div>
+            
+            <!-- 价值流阶段时间轴 -->
+            <div class="relative mb-6">
+                <div class="flex justify-between items-center text-xs text-gray-500 mb-2">
+                    <span>Day 1</span>
+                    <span>Day 1-3</span>
+                    <span>Day 3-5</span>
+                    <span>Day 5+</span>
+                    <span>交付完成</span>
+                </div>
+                <div class="relative h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div class="absolute left-0 top-0 h-full bg-heinz-red" style="width: 15%"></div>
+                    <div class="absolute left-[15%] top-0 h-full bg-blue-500" style="width: 35%"></div>
+                    <div class="absolute left-[50%] top-0 h-full bg-yellow-500" style="width: 25%"></div>
+                    <div class="absolute left-[75%] top-0 h-full bg-green-500" style="width: 20%"></div>
+                    <div class="absolute left-[95%] top-0 h-full bg-gray-400" style="width: 5%"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>启动</span>
+                    <span>系统搭建</span>
+                    <span>测试启用</span>
+                    <span>运维跟踪</span>
+                    <span>完成</span>
+                </div>
+            </div>
+
+            <!-- 阶段泳道：客户卡片墙 -->
+            <div class="space-y-4">
+                <!-- 阶段1: 项目启动 (Day 1) -->
+                <div class="value-stream-lane p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-semibold text-black">阶段1: 项目启动</span>
+                            <span class="text-xs px-2 py-0.5 bg-heinz-red/10 text-heinz-red rounded-full">3个客户</span>
+                            <span class="text-xs text-gray-500">标准: 0.5天 | 实际: 0.7天</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded">超时: 0.2天</span>
+                            <span class="text-xs text-gray-500">等待: 0.2天</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-red-500" title="阻塞"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-500" title="风险"></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 flex-wrap">
+                        <!-- 客户卡片示例 -->
+                        <div class="customer-card bg-white border-l-heinz-red p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('A品牌', '智慧门店系统', '林鸿', 20, '阻塞', '支付参数配置')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">A品牌</div>
+                                    <div class="text-xs text-gray-500">智慧门店系统  门店数：20</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs" title="前置条件检查">✗</span>
+                                    <span class="w-2 h-2 bg-red-500 rounded-full pulse-alert" title="阻塞"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 林鸿</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-heinz-red h-1.5 rounded-full" style="width: 20%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">20%</span>
+                            </div>
+                            <div class="text-xs text-red-600">阻塞: 支付参数配置</div>
+                        </div>
+                        
+                        <div class="customer-card bg-white border-l-blue-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('B品牌', '分账系统', '何承翔', 15, '正常', '')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">B品牌 门店数：30</div>
+                                    <div class="text-xs text-gray-500">分账系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-green-600" title="前置条件检查">✓</span>
+                                    <span class="w-2 h-2 bg-green-500 rounded-full" title="正常"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 何承翔</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: 15%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">15%</span>
+                            </div>
+                            <div class="text-xs text-green-600">进行中</div>
+                        </div>
+
+                        <div class="customer-card bg-white border-l-yellow-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('C品牌', '订货系统', '陆晨', 18, '风险', '资料未齐')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">C品牌</div>
+                                    <div class="text-xs text-gray-500">订货系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-yellow-600" title="前置条件检查">⚠</span>
+                                    <span class="w-2 h-2 bg-yellow-500 rounded-full" title="风险"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 陆晨</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 18%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">18%</span>
+                            </div>
+                            <div class="text-xs text-yellow-600">风险: 资料未齐</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 阶段2: 品牌级系统搭建 (Day 1-3) -->
+                <div class="value-stream-lane p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="text-sm font-semibold text-black">阶段2: 品牌级系统搭建</span>
+                            <span class="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">8个客户</span>
+                            <span class="text-xs text-gray-500">标准: 1.5天 | 实际: 2.3天</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-red-100 text-red-700 rounded">超时: 0.8天</span>
+                            <span class="text-xs text-gray-500">等待: 0.8天</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-red-500" title="阻塞"></span>
+                            <span class="w-3 h-3 rounded-full bg-red-500" title="阻塞"></span>
+                            <span class="w-3 h-3 rounded-full bg-yellow-500" title="风险"></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 flex-wrap">
+                        <div class="customer-card bg-white border-l-red-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('A品牌', '智慧门店系统', '林鸿', 45, '阻塞', '银行开户进件')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">A品牌</div>
+                                    <div class="text-xs text-gray-500">智慧门店系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs" title="前置条件检查">✗</span>
+                                    <span class="w-2 h-2 bg-red-500 rounded-full pulse-alert"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 林鸿</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-red-500 h-1.5 rounded-full" style="width: 45%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">45%</span>
+                            </div>
+                            <div class="text-xs text-red-600">阻塞: 银行开户进件</div>
+                        </div>
+
+                        <div class="customer-card bg-white border-l-blue-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('B品牌', '分账系统', '何承翔', 52, '正常', '')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">B品牌</div>
+                                    <div class="text-xs text-gray-500">分账系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-green-600" title="前置条件检查">✓</span>
+                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 何承翔</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-blue-500 h-1.5 rounded-full" style="width: 52%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">52%</span>
+                            </div>
+                            <div class="text-xs text-green-600">进行中</div>
+                        </div>
+
+                        <div class="customer-card bg-white border-l-red-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('A品牌', '智慧门店系统', '林鸿', 48, '阻塞', '支付参数配置')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">A品牌</div>
+                                    <div class="text-xs text-gray-500">智慧门店系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs" title="前置条件检查">✗</span>
+                                    <span class="w-2 h-2 bg-red-500 rounded-full pulse-alert"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 林鸿</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-red-500 h-1.5 rounded-full" style="width: 48%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">48%</span>
+                            </div>
+                            <div class="text-xs text-red-600">阻塞: 支付参数配置</div>
+                        </div>
+
+                        <div class="customer-card bg-white border-l-yellow-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('C品牌', '订货系统', '陆晨', 55, '风险', '超期1天')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">C品牌</div>
+                                    <div class="text-xs text-gray-500">订货系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-yellow-600" title="前置条件检查">⚠</span>
+                                    <span class="w-2 h-2 bg-yellow-500 rounded-full"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 陆晨</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-yellow-500 h-1.5 rounded-full" style="width: 55%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">55%</span>
+                            </div>
+                            <div class="text-xs text-yellow-600">风险: 超期1天</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 阶段3: 门店级系统部署 (Day 1-3 并行) -->
+                <div class="value-stream-lane p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-black">阶段3: 门店级系统部署</span>
+                            <span class="text-xs px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full">7个客户</span>
+                            <span class="text-xs text-gray-500">标准: 1.2天 | 实际: 1.1天</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">提前: 0.1天</span>
+                            <span class="text-xs text-gray-500">等待: 0.5天</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-red-500"></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 flex-wrap">
+                        <div class="customer-card bg-white border-l-green-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('B品牌·上海', '分账系统', '何承翔', 68, '正常', '')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">B品牌·上海</div>
+                                    <div class="text-xs text-gray-500">分账系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-green-600" title="前置条件检查">✓</span>
+                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 何承翔</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: 68%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">68%</span>
+                            </div>
+                            <div class="text-xs text-green-600">进行中</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 阶段4: 测试与启用 (Day 3-5) -->
+                <div class="value-stream-lane p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-black">阶段4: 测试与启用</span>
+                            <span class="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">5个客户</span>
+                            <span class="text-xs text-gray-500">标准: 0.8天 | 实际: 0.8天</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-yellow-100 text-yellow-700 rounded">正常</span>
+                            <span class="text-xs text-gray-500">等待: 0.3天</span>
+                        </div>
+                        <div class="flex gap-1">
+                            <span class="w-3 h-3 rounded-full bg-yellow-500"></span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 flex-wrap">
+                        <div class="customer-card bg-white border-l-green-500 p-3 rounded shadow-sm w-48 cursor-pointer" onclick="showCustomerDetail('A品牌·南京', '智慧门店系统', '林鸿', 85, '正常', '')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">A品牌·南京</div>
+                                    <div class="text-xs text-gray-500">智慧门店系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-green-600" title="前置条件检查">✓</span>
+                                    <span class="w-2 h-2 bg-green-500 rounded-full"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 林鸿</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-green-500 h-1.5 rounded-full" style="width: 85%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">85%</span>
+                            </div>
+                            <div class="text-xs text-green-600">测试中</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 阶段5: 交付完成与运维 (Day 5+) -->
+                <div class="value-stream-lane p-4 rounded-lg">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm font-semibold text-black">阶段5: 交付完成与运维</span>
+                            <span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">2个客户</span>
+                            <span class="text-xs text-gray-500">标准: 持续 | 实际: 持续</span>
+                            <span class="text-xs px-1.5 py-0.5 bg-green-100 text-green-700 rounded">正常</span>
+                            <span class="text-xs text-gray-500">等待: 0.1天</span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 flex-wrap">
+                        <div class="customer-card bg-white border-l-gray-400 p-3 rounded shadow-sm w-48 opacity-75 cursor-pointer" onclick="showCustomerDetail('B品牌·温州', '分账系统', '何承翔', 100, '完成', '')">
+                            <div class="flex justify-between items-start mb-2">
+                                <div>
+                                    <div class="font-semibold text-sm text-black">B品牌·温州</div>
+                                    <div class="text-xs text-gray-500">分账系统</div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <span class="text-xs text-green-600" title="前置条件检查">✓</span>
+                                    <span class="w-2 h-2 bg-gray-400 rounded-full"></span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-gray-600 mb-2">交付者: 何承翔</div>
+                            <div class="flex items-center gap-2 mb-2">
+                                <div class="flex-1 bg-gray-200 rounded-full h-1.5">
+                                    <div class="bg-gray-400 h-1.5 rounded-full" style="width: 100%"></div>
+                                </div>
+                                <span class="text-xs text-gray-500">100%</span>
+                            </div>
+                            <div class="text-xs text-gray-600">运维跟踪中</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第二层：交付者负载矩阵 + 瓶颈热力图 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- 交付者负载矩阵 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold mb-4 text-black">交付者负载矩阵 (一人多客户视图)</h3>
+                <div class="space-y-4">
+                    <!-- 交付者1 -->
+                    <div class="border-l-4 border-heinz-red pl-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-black">林鸿</span>
+                                <span class="text-xs px-2 py-0.5 bg-heinz-red/10 text-heinz-red rounded-full">5个客户</span>
+                                <span class="text-xs text-red-600">● 过载</span>
+                            </div>
+                            <div class="text-xs text-gray-500">平均进度: 52%</div>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <div class="px-2 py-1 bg-red-50 border border-red-200 rounded text-xs">
+                                <span class="font-medium">A品牌</span>
+                                <span class="text-red-600">阻塞</span>
+                            </div>
+                            <div class="px-2 py-1 bg-red-50 border border-red-200 rounded text-xs">
+                                <span class="font-medium">A品牌</span>
+                                <span class="text-red-600">阻塞</span>
+                            </div>
+                            <div class="px-2 py-1 bg-red-50 border border-red-200 rounded text-xs">
+                                <span class="font-medium">A品牌</span>
+                                <span class="text-red-600">阻塞</span>
+                            </div>
+                            <div class="px-2 py-1 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                <span class="font-medium">A品牌</span>
+                                <span class="text-yellow-600">85%</span>
+                            </div>
+                            <div class="px-2 py-1 bg-blue-50 border border-blue-200 rounded text-xs">
+                                <span class="font-medium">其他</span>
+                                <span class="text-blue-600">45%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 交付者2 -->
+                    <div class="border-l-4 border-green-500 pl-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-black">何承翔</span>
+                                <span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">3个客户</span>
+                                <span class="text-xs text-green-600">● 健康</span>
+                            </div>
+                            <div class="text-xs text-gray-500">平均进度: 78%</div>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <div class="px-2 py-1 bg-green-50 border border-green-200 rounded text-xs">
+                                <span class="font-medium">B品牌</span>
+                                <span class="text-green-600">正常</span>
+                            </div>
+                            <div class="px-2 py-1 bg-green-50 border border-green-200 rounded text-xs">
+                                <span class="font-medium">B品牌</span>
+                                <span class="text-green-600">68%</span>
+                            </div>
+                            <div class="px-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs">
+                                <span class="font-medium">B品牌</span>
+                                <span class="text-gray-600">完成</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 交付者3 -->
+                    <div class="border-l-4 border-yellow-500 pl-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-semibold text-black">陆晨</span>
+                                <span class="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full">4个客户</span>
+                                <span class="text-xs text-yellow-600">● 警告</span>
+                            </div>
+                            <div class="text-xs text-gray-500">平均进度: 58%</div>
+                        </div>
+                        <div class="flex gap-2 flex-wrap">
+                            <div class="px-2 py-1 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                <span class="font-medium">C品牌</span>
+                                <span class="text-yellow-600">风险</span>
+                            </div>
+                            <div class="px-2 py-1 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                                <span class="font-medium">C品牌</span>
+                                <span class="text-yellow-600">超期</span>
+                            </div>
+                            <div class="px-2 py-1 bg-blue-50 border border-blue-200 rounded text-xs">
+                                <span class="font-medium">其他2个</span>
+                                <span class="text-blue-600">进行中</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 瓶颈热力图 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold mb-4 text-black">瓶颈热力图</h3>
+                <div class="space-y-4">
+                    <!-- 瓶颈1 -->
+					<!-- 瓶颈分析建议 -->
+
+					    <div class="text-sm font-semibold text-black mb-2">💡 瓶颈改善建议</div>
+					    <div class="space-y-2 text-xs">
+					        <div class="p-2 bg-blue-50 rounded border border-blue-200">
+					            <span class="font-medium text-blue-700">资料收集优化:</span>
+					            <span class="text-gray-600">建立资料清单模板，减少返工</span>
+					        </div>
+					    </div>
+					</div>
+										<div class="mt-6 pt-4 border-t">
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-black">订货B2B支付配置</span>
+                            <span class="text-sm font-bold text-red-600">4个客户</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div class="bottleneck-heat h-full rounded-full" style="width: 83%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">影响: 分账系统(2) 订货系统(2) | 平均阻塞: 2.3天</p>
+                        <div class="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                            <div class="text-xs font-medium text-blue-700 mb-1">📚 历史解决方案:</div>
+                            <div class="text-xs text-gray-700">建立支付资料清单模板，平均减少阻塞1.2天 (2024-01-15实施，成功率85%)</div>
+                        </div>
+                    </div>
+
+                    <!-- 瓶颈2 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-black">银行开户进件</span>
+                            <span class="text-sm font-bold text-orange-600">4个客户</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div class="bottleneck-heat h-full rounded-full" style="width: 67%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">影响: 所有产品 | 平均阻塞: 1.8天</p>
+                        <div class="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                            <div class="text-xs font-medium text-blue-700 mb-1">📚 历史解决方案:</div>
+                            <div class="text-xs text-gray-700">提前收集资料清单，建立客户资料库，平均减少阻塞0.8天 (2024-01-10实施，成功率72%)</div>
+                        </div>
+                    </div>
+
+                    <!-- 瓶颈3 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-black">客户资料准备</span>
+                            <span class="text-sm font-bold text-yellow-600">3个客户</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div class="bg-yellow-200 h-full rounded-full" style="width: 50%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">影响: 订货系统(2), 智慧门店(1) | 平均阻塞: 1.2天</p>
+                        <div class="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                            <div class="text-xs font-medium text-blue-700 mb-1">📚 历史解决方案:</div>
+                            <div class="text-xs text-gray-700">项目启动会时同步提供资料清单，平均减少阻塞0.5天 (2024-01-08实施，成功率90%)</div>
+                        </div>
+                    </div>
+
+                    <!-- 瓶颈4 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-black">第三方对接(WMS/商场系统)</span>
+                            <span class="text-sm font-bold text-blue-600">2个客户</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                            <div class="bg-blue-200 h-full rounded-full" style="width: 33%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">影响: 订货系统(1), 智慧门店(1) | 平均阻塞: 3.5天</p>
+                        <div class="mt-2 p-2 bg-blue-50 rounded border border-blue-200">
+                            <div class="text-xs font-medium text-blue-700 mb-1">📚 历史解决方案:</div>
+                            <div class="text-xs text-gray-700">提前1周启动第三方对接流程，并行处理，平均减少阻塞1.5天 (2024-01-12实施，成功率68%)</div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+
+        <!-- 交付者×阶段用时热力图 (Palantir风格) -->
+        <div class="bg-white rounded-lg p-6 mb-6 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-black">交付者×阶段用时热力图</h3>
+            <div class="flex items-center justify-between mb-4">
+                <div class="text-xs text-gray-500">颜色深浅表示平均停留时间（蓝色=低，黄色/红色=高）</div>
+                <div class="flex items-center gap-2 text-xs">
+                    <div class="flex items-center gap-1">
+                        <div class="w-4 h-4 rounded" style="background: linear-gradient(90deg, #3b82f6 0%, #fbbf24 50%, #ef4444 100%);"></div>
+                        <span class="text-gray-600">用时梯度</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 overflow-x-auto">
+                <div class="min-w-full">
+                    <!-- 表头 -->
+                    <div class="grid grid-cols-6 gap-2 mb-2">
+                        <div class="text-xs font-semibold text-gray-700">阶段\交付者</div>
+                        <div class="text-xs font-semibold text-center text-gray-700">林鸿</div>
+                        <div class="text-xs font-semibold text-center text-gray-700">何承翔</div>
+                        <div class="text-xs font-semibold text-center text-gray-700">陆晨</div>
+                        <div class="text-xs font-semibold text-center text-gray-700">平均</div>
+                        <div class="text-xs font-semibold text-center text-gray-700">标准</div>
+                    </div>
+                    
+                    <!-- 热力图数据行 -->
+                    <div class="space-y-2">
+                        <!-- 阶段1 -->
+                        <div class="grid grid-cols-6 gap-2">
+                            <div class="text-xs text-gray-700 py-2">阶段1: 项目启动</div>
+                            <div class="heatmap-cell bg-red-200 hover:bg-red-300 cursor-pointer transition-all" 
+                                 data-stage="阶段1" data-deliverer="林鸿" data-time="0.9" data-standard="0.5"
+                                 style="background: linear-gradient(135deg, #fca5a5 0%, #ef4444 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">0.9天</div>
+                                <div class="text-xs text-white/80 text-center">超时0.4天</div>
+                            </div>
+                            <div class="heatmap-cell bg-green-200 hover:bg-green-300 cursor-pointer transition-all"
+                                 data-stage="阶段1" data-deliverer="何承翔" data-time="0.5" data-standard="0.5"
+                                 style="background: linear-gradient(135deg, #86efac 0%, #22c55e 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">0.5天</div>
+                                <div class="text-xs text-white/80 text-center">正常</div>
+                            </div>
+                            <div class="heatmap-cell bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition-all"
+                                 data-stage="阶段1" data-deliverer="陆晨" data-time="0.7" data-standard="0.5"
+                                 style="background: linear-gradient(135deg, #fde047 0%, #eab308 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">0.7天</div>
+                                <div class="text-xs text-white/80 text-center">超时0.2天</div>
+                            </div>
+                            <div class="text-xs text-gray-600 text-center py-2">0.7天</div>
+                            <div class="text-xs text-gray-500 text-center py-2">0.5天</div>
+                        </div>
+                        
+                        <!-- 阶段2 -->
+                        <div class="grid grid-cols-6 gap-2">
+                            <div class="text-xs text-gray-700 py-2">阶段2: 品牌级系统搭建</div>
+                            <div class="heatmap-cell bg-red-300 hover:bg-red-400 cursor-pointer transition-all"
+                                 data-stage="阶段2" data-deliverer="林鸿" data-time="2.8" data-standard="1.5"
+                                 style="background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">2.8天</div>
+                                <div class="text-xs text-white/80 text-center">超时1.3天</div>
+                            </div>
+                            <div class="heatmap-cell bg-blue-200 hover:bg-blue-300 cursor-pointer transition-all"
+                                 data-stage="阶段2" data-deliverer="何承翔" data-time="1.6" data-standard="1.5"
+                                 style="background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">1.6天</div>
+                                <div class="text-xs text-white/80 text-center">正常</div>
+                            </div>
+                            <div class="heatmap-cell bg-orange-200 hover:bg-orange-300 cursor-pointer transition-all"
+                                 data-stage="阶段2" data-deliverer="陆晨" data-time="2.1" data-standard="1.5"
+                                 style="background: linear-gradient(135deg, #fdba74 0%, #f97316 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">2.1天</div>
+                                <div class="text-xs text-white/80 text-center">超时0.6天</div>
+                            </div>
+                            <div class="text-xs text-gray-600 text-center py-2">2.2天</div>
+                            <div class="text-xs text-gray-500 text-center py-2">1.5天</div>
+                        </div>
+                        
+                        <!-- 阶段3 -->
+                        <div class="grid grid-cols-6 gap-2">
+                            <div class="text-xs text-gray-700 py-2">阶段3: 门店级系统部署</div>
+                            <div class="heatmap-cell bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition-all"
+                                 data-stage="阶段3" data-deliverer="林鸿" data-time="1.3" data-standard="1.2"
+                                 style="background: linear-gradient(135deg, #fde047 0%, #eab308 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">1.3天</div>
+                                <div class="text-xs text-white/80 text-center">超时0.1天</div>
+                            </div>
+                            <div class="heatmap-cell bg-green-200 hover:bg-green-300 cursor-pointer transition-all"
+                                 data-stage="阶段3" data-deliverer="何承翔" data-time="1.0" data-standard="1.2"
+                                 style="background: linear-gradient(135deg, #86efac 0%, #22c55e 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">1.0天</div>
+                                <div class="text-xs text-white/80 text-center">提前0.2天</div>
+                            </div>
+                            <div class="heatmap-cell bg-blue-200 hover:bg-blue-300 cursor-pointer transition-all"
+                                 data-stage="阶段3" data-deliverer="陆晨" data-time="1.2" data-standard="1.2"
+                                 style="background: linear-gradient(135deg, #93c5fd 0%, #3b82f6 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">1.2天</div>
+                                <div class="text-xs text-white/80 text-center">正常</div>
+                            </div>
+                            <div class="text-xs text-gray-600 text-center py-2">1.2天</div>
+                            <div class="text-xs text-gray-500 text-center py-2">1.2天</div>
+                        </div>
+                        
+                        <!-- 阶段4 -->
+                        <div class="grid grid-cols-6 gap-2">
+                            <div class="text-xs text-gray-700 py-2">阶段4: 测试与启用</div>
+                            <div class="heatmap-cell bg-green-200 hover:bg-green-300 cursor-pointer transition-all"
+                                 data-stage="阶段4" data-deliverer="林鸿" data-time="0.7" data-standard="0.8"
+                                 style="background: linear-gradient(135deg, #86efac 0%, #22c55e 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">0.7天</div>
+                                <div class="text-xs text-white/80 text-center">提前0.1天</div>
+                            </div>
+                            <div class="heatmap-cell bg-green-200 hover:bg-green-300 cursor-pointer transition-all"
+                                 data-stage="阶段4" data-deliverer="何承翔" data-time="0.8" data-standard="0.8"
+                                 style="background: linear-gradient(135deg, #86efac 0%, #22c55e 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">0.8天</div>
+                                <div class="text-xs text-white/80 text-center">正常</div>
+                            </div>
+                            <div class="heatmap-cell bg-yellow-200 hover:bg-yellow-300 cursor-pointer transition-all"
+                                 data-stage="阶段4" data-deliverer="陆晨" data-time="0.9" data-standard="0.8"
+                                 style="background: linear-gradient(135deg, #fde047 0%, #eab308 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">0.9天</div>
+                                <div class="text-xs text-white/80 text-center">超时0.1天</div>
+                            </div>
+                            <div class="text-xs text-gray-600 text-center py-2">0.8天</div>
+                            <div class="text-xs text-gray-500 text-center py-2">0.8天</div>
+                        </div>
+                        
+                        <!-- 阶段5 -->
+                        <div class="grid grid-cols-6 gap-2">
+                            <div class="text-xs text-gray-700 py-2">阶段5: 交付完成与运维</div>
+                            <div class="heatmap-cell bg-gray-200 hover:bg-gray-300 cursor-pointer transition-all"
+                                 data-stage="阶段5" data-deliverer="林鸿" data-time="持续" data-standard="持续"
+                                 style="background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">持续</div>
+                                <div class="text-xs text-white/80 text-center">正常</div>
+                            </div>
+                            <div class="heatmap-cell bg-gray-200 hover:bg-gray-300 cursor-pointer transition-all"
+                                 data-stage="阶段5" data-deliverer="何承翔" data-time="持续" data-standard="持续"
+                                 style="background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">持续</div>
+                                <div class="text-xs text-white/80 text-center">正常</div>
+                            </div>
+                            <div class="heatmap-cell bg-gray-200 hover:bg-gray-300 cursor-pointer transition-all"
+                                 data-stage="阶段5" data-deliverer="陆晨" data-time="持续" data-standard="持续"
+                                 style="background: linear-gradient(135deg, #d1d5db 0%, #9ca3af 100%);">
+                                <div class="text-xs font-bold text-white text-center py-2">持续</div>
+                                <div class="text-xs text-white/80 text-center">正常</div>
+                            </div>
+                            <div class="text-xs text-gray-600 text-center py-2">持续</div>
+                            <div class="text-xs text-gray-500 text-center py-2">持续</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 热力图说明 -->
+            <div class="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
+                <div class="text-xs text-gray-700">
+                    <span class="font-medium text-blue-700">💡 洞察:</span> 
+                    <span class="text-red-600 font-semibold">林鸿在阶段2用时2.8天（超时1.3天）</span>， 
+                    <span class="text-orange-600 font-semibold">陆晨在阶段2用时2.1天（超时0.6天）</span>。
+                    建议：为林鸿提供阶段2专项培训，优化品牌级系统搭建流程。
+                </div>
+            </div>
+        </div>
+
+        <!-- 第三层：异常预警区 + 产品分布 -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- 异常预警区 (安灯系统) -->
+            <div class="bg-white rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold mb-4 text-black">异常预警区</h3>
+                <div class="space-y-3">
+                    <!-- 阻塞客户 -->
+                    <div class="border-l-4 border-red-500 pl-4 py-2 bg-red-50/50">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="font-semibold text-sm text-black">A品牌</span>
+                                <span class="text-xs text-gray-500 ml-2">智慧门店 | 林鸿</span>
+                            </div>
+                            <span class="text-xs font-bold text-red-600">阻塞2.5天</span>
+                        </div>
+                        <p class="text-xs text-gray-600">支付参数配置 - 等待客户提供营业执照</p>
+                    </div>
+
+                    <div class="border-l-4 border-red-500 pl-4 py-2 bg-red-50/50">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="font-semibold text-sm text-black">A品牌</span>
+                                <span class="text-xs text-gray-500 ml-2">智慧门店 | 林鸿</span>
+                            </div>
+                            <span class="text-xs font-bold text-red-600">阻塞1.8天</span>
+                        </div>
+                        <p class="text-xs text-gray-600">银行开户进件 - 法人身份证未提供</p>
+                    </div>
+
+                    <div class="border-l-4 border-red-500 pl-4 py-2 bg-red-50/50">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="font-semibold text-sm text-black">A品牌</span>
+                                <span class="text-xs text-gray-500 ml-2">智慧门店 | 林鸿</span>
+                            </div>
+                            <span class="text-xs font-bold text-red-600">阻塞1.2天</span>
+                        </div>
+                        <p class="text-xs text-gray-600">支付参数配置 - 微信支付申请审核中</p>
+                    </div>
+
+                    <!-- 风险客户 -->
+                    <div class="border-l-4 border-yellow-500 pl-4 py-2 bg-yellow-50/50">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="font-semibold text-sm text-black">C品牌</span>
+                                <span class="text-xs text-gray-500 ml-2">订货系统 | 陆晨</span>
+                            </div>
+                            <span class="text-xs font-bold text-yellow-600">风险</span>
+                        </div>
+                        <p class="text-xs text-gray-600">资料未齐 - 可能影响后续进度</p>
+                    </div>
+
+                    <div class="border-l-4 border-yellow-500 pl-4 py-2 bg-yellow-50/50">
+                        <div class="flex justify-between items-start mb-1">
+                            <div>
+                                <span class="font-semibold text-sm text-black">C品牌</span>
+                                <span class="text-xs text-gray-500 ml-2">订货系统 | 陆晨</span>
+                            </div>
+                            <span class="text-xs font-bold text-yellow-600">超期1天</span>
+                        </div>
+                        <p class="text-xs text-gray-600">品牌级系统搭建阶段超期</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 三产品交付分布 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm">
+                <h3 class="text-lg font-semibold mb-4 text-black">三产品交付进度分布</h3>
+                <div class="space-y-4">
+                    <!-- 智慧门店系统 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-black">智慧门店系统</span>
+                            <span class="text-sm font-bold text-heinz-red">8个交付中</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="bg-heinz-red h-3 rounded-full" style="width: 65%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>平均进度: 65%</span>
+                            <span>阻塞: 3个 | 风险: 0个</span>
+                        </div>
+                    </div>
+
+                    <!-- 分账系统 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-black">分账系统</span>
+                            <span class="text-sm font-bold text-blue-600">9个交付中</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="bg-blue-500 h-3 rounded-full" style="width: 58%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>平均进度: 58%</span>
+                            <span>阻塞: 2个 | 风险: 0个</span>
+                        </div>
+                    </div>
+
+                    <!-- 订货系统 -->
+                    <div>
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-sm font-medium text-black">订货系统</span>
+                            <span class="text-sm font-bold text-purple-600">8个交付中</span>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-3">
+                            <div class="bg-purple-500 h-3 rounded-full" style="width: 42%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>平均进度: 42%</span>
+                            <span>阻塞: 2个 | 风险: 2个</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 产品级瓶颈 -->
+                <div class="mt-6 pt-4 border-t">
+                    <div class="text-sm font-semibold text-black mb-3">产品级瓶颈分析</div>
+                    <div class="space-y-2 text-xs">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-heinz-red rounded-full"></span>
+                            <span class="text-gray-700">智慧门店: 支付配置阻塞严重 (3个客户)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+                            <span class="text-gray-700">分账系统: 银行开户等待时间长 (2个客户)</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 bg-purple-500 rounded-full"></span>
+                            <span class="text-gray-700">订货系统: 资料准备 + WMS对接 (4个客户)</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 第四层：价值流效率分析 -->
+        <div class="bg-white rounded-lg p-6 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-black">价值流效率看板</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 border rounded-lg">
+                    <div class="text-2xl font-bold text-heinz-red">4.2天</div>
+                    <div class="text-xs text-gray-600 mt-1">平均周期时间</div>
+                    <div class="text-xs text-gray-400">(Lead Time)</div>
+                    <div class="mt-2 text-xs text-red-600">目标: 3.5天 ⬆</div>
+                </div>
+                <div class="text-center p-4 border rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600">2.8天</div>
+                    <div class="text-xs text-gray-600 mt-1">平均处理时间</div>
+                    <div class="text-xs text-gray-400">(Process Time)</div>
+                    <div class="mt-2 text-xs text-green-600">正常</div>
+                </div>
+                <div class="text-center p-4 border rounded-lg">
+                    <div class="text-2xl font-bold text-yellow-600">1.4天</div>
+                    <div class="text-xs text-gray-600 mt-1">平均等待时间</div>
+                    <div class="text-xs text-gray-400">(Wait Time)</div>
+                    <div class="mt-2 text-xs text-red-600">浪费: 33% ⬆</div>
+                </div>
+                <div class="text-center p-4 border rounded-lg">
+                    <div class="text-2xl font-bold text-green-600">7个</div>
+                    <div class="text-xs text-gray-600 mt-1">并行交付(WIP)</div>
+                    <div class="text-xs text-gray-400">阻塞客户数</div>
+                    <div class="mt-2 text-xs text-red-600">需减少 ⬆</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 趋势分析模块 (丰田风格) -->
+        <div class="bg-white rounded-lg p-6 mb-6 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-black">节点趋势看板</h3>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- 周期时间趋势图 -->
+                <div>
+                    <div class="text-sm font-medium text-black mb-3">周期时间趋势 (过去4周)</div>
+                    <div class="relative h-48 bg-gray-50 rounded p-4">
+                        <svg class="w-full h-full" viewBox="0 0 450 200" preserveAspectRatio="xMidYMid meet">
+                            <!-- 网格线 -->
+                            <line x1="50" y1="170" x2="400" y2="170" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="50" y1="130" x2="400" y2="130" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="50" y1="90" x2="400" y2="90" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="50" y1="50" x2="400" y2="50" stroke="#e5e7eb" stroke-width="1"/>
+                            <!-- 目标线 -->
+                            <line x1="50" y1="90" x2="400" y2="90" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
+                            <!-- 趋势线 -->
+                            <polyline points="80,110 150,105 250,100 350,95" fill="none" stroke="#E31837" stroke-width="2"/>
+                            <!-- 数据点 -->
+                            <circle cx="80" cy="110" r="4" fill="#E31837"/>
+                            <circle cx="150" cy="105" r="4" fill="#E31837"/>
+                            <circle cx="250" cy="100" r="4" fill="#E31837"/>
+                            <circle cx="350" cy="95" r="4" fill="#E31837"/>
+                            <!-- X轴标签 -->
+                            <text x="80" y="190" text-anchor="middle" font-size="10" fill="#6b7280">第1周</text>
+                            <text x="150" y="190" text-anchor="middle" font-size="10" fill="#6b7280">第2周</text>
+                            <text x="250" y="190" text-anchor="middle" font-size="10" fill="#6b7280">第3周</text>
+                            <text x="350" y="190" text-anchor="middle" font-size="10" fill="#6b7280">第4周</text>
+                            <!-- Y轴标签 -->
+                            <text x="45" y="175" text-anchor="end" font-size="9" fill="#6b7280">5.0天</text>
+                            <text x="45" y="95" text-anchor="end" font-size="9" fill="#6b7280">3.5天</text>
+                            <!-- 目标标签 -->
+                            <text x="405" y="92" font-size="9" fill="#10b981">目标:3.5天</text>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- 瓶颈变化趋势图 -->
+                <div>
+                    <div class="text-sm font-medium text-black mb-3">瓶颈客户数变化 (过去4周)</div>
+                    <div class="relative h-48 bg-gray-50 rounded p-4">
+                        <div class="flex items-center gap-3 mb-2 text-xs">
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-0.5 bg-red-500"></div>
+                                <span class="text-gray-700">支付参数配置</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-0.5 bg-orange-500"></div>
+                                <span class="text-gray-700">银行开户进件</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-3 h-0.5 bg-yellow-500"></div>
+                                <span class="text-gray-700">客户资料准备</span>
+                            </div>
+                        </div>
+                        <svg class="w-full" style="height: calc(100% - 20px);" viewBox="0 0 450 160" preserveAspectRatio="xMidYMid meet">
+                            <!-- 网格线 -->
+                            <line x1="50" y1="150" x2="400" y2="150" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="50" y1="120" x2="400" y2="120" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="50" y1="90" x2="400" y2="90" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="50" y1="60" x2="400" y2="60" stroke="#e5e7eb" stroke-width="1"/>
+                            <line x1="50" y1="30" x2="400" y2="30" stroke="#e5e7eb" stroke-width="1"/>
+                            <!-- 支付参数配置 -->
+                            <polyline points="80,40 150,45 250,50 350,55" fill="none" stroke="#ef4444" stroke-width="2"/>
+                            <circle cx="80" cy="40" r="3" fill="#ef4444"/>
+                            <circle cx="150" cy="45" r="3" fill="#ef4444"/>
+                            <circle cx="250" cy="50" r="3" fill="#ef4444"/>
+                            <circle cx="350" cy="55" r="3" fill="#ef4444"/>
+                            <!-- 银行开户进件 -->
+                            <polyline points="80,70 150,75 250,80 350,85" fill="none" stroke="#f97316" stroke-width="2"/>
+                            <circle cx="80" cy="70" r="3" fill="#f97316"/>
+                            <circle cx="150" cy="75" r="3" fill="#f97316"/>
+                            <circle cx="250" cy="80" r="3" fill="#f97316"/>
+                            <circle cx="350" cy="85" r="3" fill="#f97316"/>
+                            <!-- 客户资料准备 -->
+                            <polyline points="80,100 150,95 250,90 350,85" fill="none" stroke="#eab308" stroke-width="2"/>
+                            <circle cx="80" cy="100" r="3" fill="#eab308"/>
+                            <circle cx="150" cy="95" r="3" fill="#eab308"/>
+                            <circle cx="250" cy="90" r="3" fill="#eab308"/>
+                            <circle cx="350" cy="85" r="3" fill="#eab308"/>
+                            <!-- X轴标签 -->
+                            <text x="80" y="170" text-anchor="middle" font-size="10" fill="#6b7280">第1周</text>
+                            <text x="150" y="170" text-anchor="middle" font-size="10" fill="#6b7280">第2周</text>
+                            <text x="250" y="170" text-anchor="middle" font-size="10" fill="#6b7280">第3周</text>
+                            <text x="350" y="170" text-anchor="middle" font-size="10" fill="#6b7280">第4周</text>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 持续改善追踪模块 (丰田风格) -->
+        <div class="bg-white rounded-lg p-6 mb-6 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-black">持续改善追踪</h3>
+            <div class="space-y-4">
+                <!-- 改善措施1 -->
+                <div class="border-l-4 border-green-500 pl-4 py-3 bg-green-50/30">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="font-semibold text-sm text-black">建立支付资料清单模板</div>
+                            <div class="text-xs text-gray-600 mt-1">实施日期: 2024-01-15 | 状态: 进行中 | 追踪周期: 2周</div>
+                        </div>
+                        <span class="text-xs px-2 py-1 bg-green-100 text-green-700 rounded">改善28%</span>
+                    </div>
+                    <div class="text-xs text-gray-700 mt-2">
+                        <span class="font-medium">效果:</span> 支付参数配置阻塞从平均2.5天降至1.8天，改善28%
+                    </div>
+                    <div class="flex items-center gap-4 mt-2 text-xs">
+                        <span class="text-gray-600">影响客户数: 12个</span>
+                        <span class="text-gray-600">成功率: 85%</span>
+                    </div>
+                </div>
+
+                <!-- 改善措施2 -->
+                <div class="border-l-4 border-blue-500 pl-4 py-3 bg-blue-50/30">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="font-semibold text-sm text-black">提前收集资料清单，建立客户资料库</div>
+                            <div class="text-xs text-gray-600 mt-1">实施日期: 2024-01-10 | 状态: 进行中 | 追踪周期: 2周</div>
+                        </div>
+                        <span class="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">改善31%</span>
+                    </div>
+                    <div class="text-xs text-gray-700 mt-2">
+                        <span class="font-medium">效果:</span> 银行开户进件阻塞从平均2.6天降至1.8天，改善31%
+                    </div>
+                    <div class="flex items-center gap-4 mt-2 text-xs">
+                        <span class="text-gray-600">影响客户数: 15个</span>
+                        <span class="text-gray-600">成功率: 72%</span>
+                    </div>
+                </div>
+
+                <!-- 改善措施3 -->
+                <div class="border-l-4 border-purple-500 pl-4 py-3 bg-purple-50/30">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <div class="font-semibold text-sm text-black">项目启动会时同步提供资料清单</div>
+                            <div class="text-xs text-gray-600 mt-1">实施日期: 2024-01-08 | 状态: 已完成 | 追踪周期: 2周</div>
+                        </div>
+                        <span class="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded">改善42%</span>
+                    </div>
+                    <div class="text-xs text-gray-700 mt-2">
+                        <span class="font-medium">效果:</span> 客户资料准备阻塞从平均2.1天降至1.2天，改善42%
+                    </div>
+                    <div class="flex items-center gap-4 mt-2 text-xs">
+                        <span class="text-gray-600">影响客户数: 18个</span>
+                        <span class="text-gray-600">成功率: 90%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- 客户详情弹窗 -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeCustomerDetail()">&times;</span>
+            <h2 class="text-xl font-bold text-black mb-4" id="modalTitle">客户详情</h2>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+        
+        // 更新时间
+        setInterval(() => {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('lastUpdate').textContent = `今天 ${timeStr}`;
+        }, 60000);
+
+        // 筛选功能
+        function applyFilters() {
+            const deliverer = document.getElementById('filterDeliverer').value;
+            const product = document.getElementById('filterProduct').value;
+            const status = document.getElementById('filterStatus').value;
+            const cards = document.querySelectorAll('.customer-card');
+            cards.forEach(card => {
+                let show = true;
+                const delivererText = card.textContent.includes(deliverer === 'all' ? '' : deliverer);
+                const productText = card.textContent.includes(product === 'all' ? '' : product);
+                const statusText = card.textContent.includes(status === 'all' ? '' : status);
+                
+                if (deliverer !== 'all' && !delivererText) show = false;
+                if (product !== 'all' && !productText) show = false;
+                if (status !== 'all' && !statusText) show = false;
+                
+                card.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('filterDeliverer').value = 'all';
+            document.getElementById('filterProduct').value = 'all';
+            document.getElementById('filterStatus').value = 'all';
+            const cards = document.querySelectorAll('.customer-card');
+            cards.forEach(card => card.style.display = 'block');
+        }
+
+        // 客户详情弹窗
+        function showCustomerDetail(customer, product, deliverer, progress, status, issue) {
+            const modal = document.getElementById('customerModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalContent = document.getElementById('modalContent');
+            
+            modalTitle.textContent = `${customer} - 交付详情`;
+            
+            const steps = [
+                { name: '项目启动会', status: 'completed', time: '2024-01-15 09:00', duration: '2小时' },
+                { name: '支付参数配置', status: 'blocked', time: '2024-01-15 11:00', duration: '阻塞2.5天' },
+                { name: '品牌系统初始化', status: 'pending', time: '-', duration: '-' },
+                { name: '门店系统部署', status: 'pending', time: '-', duration: '-' },
+                { name: '测试与启用', status: 'pending', time: '-', duration: '-' }
+            ];
+            
+            let stepsHtml = '<div class="space-y-3 mb-4"><div class="text-sm font-semibold text-black mb-2">详细步骤:</div>';
+            steps.forEach(step => {
+                const statusIcon = step.status === 'completed' ? '✓' : step.status === 'blocked' ? '✗' : '○';
+                const statusColor = step.status === 'completed' ? 'text-green-600' : step.status === 'blocked' ? 'text-red-600' : 'text-gray-400';
+                stepsHtml += `
+                    <div class="flex items-center gap-3 p-2 border rounded">
+                        <span class="text-lg ${statusColor}">${statusIcon}</span>
+                        <div class="flex-1">
+                            <div class="text-sm font-medium text-black">${step.name}</div>
+                            <div class="text-xs text-gray-500">${step.time} | ${step.duration}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            stepsHtml += '</div>';
+            
+            modalContent.innerHTML = `
+                <div class="space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-xs text-gray-600">客户名称</div>
+                            <div class="text-sm font-medium text-black">${customer}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-600">产品类型</div>
+                            <div class="text-sm font-medium text-black">${product}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-600">交付者</div>
+                            <div class="text-sm font-medium text-black">${deliverer}</div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-600">当前进度</div>
+                            <div class="text-sm font-medium text-black">${progress}%</div>
+                        </div>
+                    </div>
+                    ${stepsHtml}
+                    <div class="border-t pt-4">
+                        <div class="text-sm font-semibold text-black mb-2">阻塞历史:</div>
+                        <div class="text-xs text-gray-700 p-2 bg-red-50 rounded">
+                            ${issue} - 等待客户提供营业执照 (阻塞2.5天)
+                        </div>
+                    </div>
+                    <div class="border-t pt-4">
+                        <div class="text-sm font-semibold text-black mb-2">相关改善措施:</div>
+                        <div class="text-xs text-gray-700 p-2 bg-blue-50 rounded">
+                            建立支付资料清单模板 - 预计可减少阻塞1.2天
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+
+        function closeCustomerDetail() {
+            document.getElementById('customerModal').style.display = 'none';
+        }
+
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('customerModal');
+            if (event.target == modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        // 热力图交互
+        const heatmapCells = document.querySelectorAll('.heatmap-cell');
+        let tooltip = null;
+
+        heatmapCells.forEach(cell => {
+            cell.addEventListener('mouseenter', function(e) {
+                const stage = this.getAttribute('data-stage');
+                const deliverer = this.getAttribute('data-deliverer');
+                const time = this.getAttribute('data-time');
+                const standard = this.getAttribute('data-standard');
+                
+                // 创建工具提示
+                if (!tooltip) {
+                    tooltip = document.createElement('div');
+                    tooltip.className = 'heatmap-tooltip';
+                    document.body.appendChild(tooltip);
+                }
+                
+                const diff = time !== '持续' && standard !== '持续' 
+                    ? (parseFloat(time) - parseFloat(standard)).toFixed(1) 
+                    : '0';
+                const diffText = diff > 0 ? `超时${diff}天` : diff < 0 ? `提前${Math.abs(diff)}天` : '正常';
+                
+                tooltip.innerHTML = `
+                    <div class="font-semibold mb-1">${deliverer} - ${stage}</div>
+                    <div>实际用时: ${time}</div>
+                    <div>标准用时: ${standard}</div>
+                    <div class="mt-1 pt-1 border-t border-white/20">${diffText}</div>
+                `;
+                tooltip.style.display = 'block';
+                
+                const rect = this.getBoundingClientRect();
+                tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+                tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+            });
+            
+            cell.addEventListener('mouseleave', function() {
+                if (tooltip) {
+                    tooltip.style.display = 'none';
+                }
+            });
+            
+            cell.addEventListener('mousemove', function(e) {
+                if (tooltip) {
+                    const rect = this.getBoundingClientRect();
+                    tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+                    tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
